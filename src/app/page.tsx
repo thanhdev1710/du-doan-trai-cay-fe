@@ -173,7 +173,7 @@ export default function FruitRecognitionSystem() {
       if (response.ok) {
         const prediction = getBaseLabel(data.prediction);
         setResult({
-          prediction: data.prediction,
+          prediction,
           vietnamese: translations[prediction] || "Không rõ",
         });
       } else {
