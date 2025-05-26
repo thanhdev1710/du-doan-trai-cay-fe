@@ -247,9 +247,10 @@ export default function FruitRecognitionSystem() {
       const data = await response.json();
 
       if (response.ok) {
-        const top1 = Object.entries(data)
+        const top1 = Object.entries(data.prediction)
           .map(([label, percent]) => [label, parseFloat(percent as string)]) // convert "14.6%" → 14.6
           .sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+        console.log(top1);
 
         const textResult = top1[0] as string;
 
