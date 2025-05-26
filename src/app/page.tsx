@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { data } from "framer-motion/client";
 
 export default function FruitRecognitionSystem() {
   const [file, setFile] = useState<File | null>(null);
@@ -247,7 +248,10 @@ export default function FruitRecognitionSystem() {
       const data = await response.json();
 
       if (response.ok) {
-        const prediction = getBaseLabel(data.prediction);
+        const textResult = Object.entries(data.prediction)[0][0];
+        console.log(data);
+
+        const prediction = getBaseLabel(textResult);
         setResult({
           prediction,
           vietnamese: translations[prediction] || "Không rõ",
