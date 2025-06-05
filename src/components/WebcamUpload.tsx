@@ -47,10 +47,13 @@ export const WebcamUpload = ({
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("http://127.0.0.1:10000/predict", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        "https://du-doan-trai-cay.onrender.com/predict",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Unknown error");
