@@ -2,16 +2,15 @@
 
 import type React from "react";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   Upload,
   Search,
-  BananaIcon as Fruit,
   List,
-  ArrowUpCircle,
-  X,
   Check,
   Info,
+  ImageDown,
+  Webcam,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -24,17 +23,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { WebcamUpload } from "@/components/WebcamUpload";
+import ImageUpload from "@/components/ImageUpload";
 
 export default function FruitRecognitionSystem() {
-  const [file, setFile] = useState<File | null>(null);
+  const [tab, setTab] = useState<"image" | "webcam">("image");
   const [preview, setPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{
     prediction: string;
     vietnamese: string;
   } | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const translations: Record<string, string> = {
     apple: "Táo",
@@ -42,109 +41,6 @@ export default function FruitRecognitionSystem() {
     grape: "Nho",
     mango: "Xoài",
     strawberry: "Dâu tây",
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
-
-      // Reset results when new file is selected
-      setResult(null);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(false);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      setFile(droppedFile);
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(droppedFile);
-
-      // Reset results when new file is dropped
-      setResult(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file) return;
-
-    setIsLoading(true);
-    setResult(null);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("http://127.0.0.1:10000/predict", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        const top1 = Object.entries(data.prediction)
-          .map(([label, percent]) => [label, parseFloat(percent as string)]) // convert "14.6%" → 14.6
-          .sort((a, b) => Number(b[1]) - Number(a[1]))[0];
-        console.log(data.prediction);
-        console.log(top1);
-
-        const textResult = top1[0] as string;
-
-        const prediction = getBaseLabel(textResult);
-        setResult({
-          prediction,
-          vietnamese: translations[prediction] || "Không rõ",
-        });
-      } else {
-        console.error("Error:", data.error);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getBaseLabel = (label: string) => {
-    return label.replace(/\s\d+$/, "").trim();
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
-
-  const clearFile = () => {
-    setFile(null);
-    setPreview(null);
-    setResult(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   return (
@@ -157,10 +53,10 @@ export default function FruitRecognitionSystem() {
           transition={{ duration: 0.6 }}
         >
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 text-transparent bg-clip-text py-2 mb-4">
-            🍎 Hệ thống nhận diện trái cây
+            🍎 Hệ thống phân loại trái cây
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Khám phá công nghệ AI nhận diện trái cây chỉ với một bức ảnh. Tải
+            Khám phá công nghệ AI phân loại trái cây chỉ với một bức ảnh. Tải
             lên hình ảnh và nhận kết quả ngay lập tức!
           </p>
         </motion.header>
@@ -172,105 +68,56 @@ export default function FruitRecognitionSystem() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
+            <div className="mb-4 flex items-center justify-center gap-4">
+              <Button
+                onClick={() => setTab("image")}
+                className={`w-full py-6 rounded-xl font-medium text-white transition-all duration-300 ${
+                  tab !== "image"
+                    ? "bg-gray-400"
+                    : "bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 shadow-lg hover:shadow-purple-200"
+                }`}
+              >
+                Ảnh <ImageDown />
+              </Button>
+              <Button
+                onClick={() => setTab("webcam")}
+                className={`w-full py-6 rounded-xl font-medium text-white transition-all duration-300 ${
+                  tab !== "webcam"
+                    ? "bg-gray-400"
+                    : "bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 shadow-lg hover:shadow-purple-200"
+                }`}
+              >
+                Webcam <Webcam />
+              </Button>
+            </div>
             <Card className="overflow-hidden backdrop-blur-sm bg-white/80 border-0 shadow-xl">
-              <CardContent className="p-6">
-                <h2 className="text-xl font-semibold text-purple-700 flex items-center gap-2 mb-4">
-                  <Upload className="h-5 w-5" /> Tải lên ảnh trái cây
-                </h2>
-
-                <form onSubmit={handleSubmit}>
-                  <div
-                    className={`relative border-2 border-dashed rounded-xl p-8 mb-6 text-center cursor-pointer transition-all duration-300 ${
-                      dragActive
-                        ? "border-purple-500 bg-purple-50"
-                        : "border-purple-200 hover:border-purple-300 hover:bg-purple-50/50"
-                    }`}
-                    onClick={triggerFileInput}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                    />
-
-                    <AnimatePresence mode="wait">
-                      {!preview ? (
-                        <motion.div
-                          key="upload-prompt"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                        >
-                          <Fruit className="h-12 w-12 text-purple-400 mx-auto mb-3" />
-                          <p className="text-purple-700 font-medium">
-                            Kéo thả ảnh trái cây vào đây
-                          </p>
-                          <p className="text-sm text-gray-500 mt-1">
-                            hoặc nhấp để chọn từ thiết bị của bạn
-                          </p>
-                          <p className="text-xs text-gray-400 mt-3">
-                            Hỗ trợ: JPG, PNG, GIF (tối đa 5MB)
-                          </p>
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="preview"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="relative"
-                        >
-                          <div className="relative w-full h-48 rounded-lg overflow-hidden">
-                            <Image
-                              src={preview || "/placeholder.svg"}
-                              alt="Ảnh xem trước"
-                              fill
-                              className="object-contain"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              clearFile();
-                            }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className={`w-full py-6 rounded-xl font-medium text-white transition-all duration-300 ${
-                      !file
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 shadow-lg hover:shadow-purple-200"
-                    }`}
-                    disabled={!file || isLoading}
-                  >
-                    {isLoading ? (
-                      <span className="flex items-center gap-2">
-                        <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Đang phân tích...
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <ArrowUpCircle className="h-5 w-5" />
-                        Nhận diện trái cây
-                      </span>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
+              {tab === "webcam" ? (
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold text-purple-700 flex items-center gap-2 mb-4">
+                    <Upload className="h-5 w-5" /> Vui lòng đưa trái cây vào ảnh
+                  </h2>
+                  <WebcamUpload
+                    setIsLoading={setIsLoading}
+                    setPreview={setPreview}
+                    setResult={setResult}
+                    translations={translations}
+                  />
+                </CardContent>
+              ) : (
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold text-purple-700 flex items-center gap-2 mb-4">
+                    <Upload className="h-5 w-5" /> Tải lên ảnh trái cây
+                  </h2>
+                  <ImageUpload
+                    isLoading={isLoading}
+                    preview={preview}
+                    setIsLoading={setIsLoading}
+                    setPreview={setPreview}
+                    setResult={setResult}
+                    translations={translations}
+                  />
+                </CardContent>
+              )}
             </Card>
           </motion.div>
 
@@ -283,7 +130,7 @@ export default function FruitRecognitionSystem() {
             <Card className="overflow-hidden backdrop-blur-sm bg-white/80 border-0 shadow-xl h-full">
               <CardContent className="p-6 flex flex-col h-full">
                 <h2 className="text-xl font-semibold text-purple-700 flex items-center gap-2 mb-4">
-                  <Search className="h-5 w-5" /> Kết quả nhận diện
+                  <Search className="h-5 w-5" /> Kết quả phân loại
                 </h2>
 
                 <div className="flex-grow flex flex-col items-center justify-center">
@@ -303,7 +150,7 @@ export default function FruitRecognitionSystem() {
                           Chưa có ảnh nào được tải lên
                         </h3>
                         <p className="text-gray-500">
-                          Tải lên hình ảnh trái cây để hệ thống AI nhận diện và
+                          Tải lên hình ảnh trái cây để hệ thống AI phân loại và
                           phân tích
                         </p>
                       </motion.div>
@@ -350,7 +197,7 @@ export default function FruitRecognitionSystem() {
                             <Check className="h-5 w-5" />
                           </div>
                           <h3 className="text-xl font-semibold text-purple-800 mb-1">
-                            Kết quả nhận diện
+                            Kết quả phân loại
                           </h3>
                           <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm mb-3">
                             <p className="text-gray-500 text-sm mb-1">
@@ -392,7 +239,7 @@ export default function FruitRecognitionSystem() {
                           Ảnh đã sẵn sàng
                         </h3>
                         <p className="text-gray-500">
-                          Nhấn nút &quot;Nhận diện trái cây&quot; để bắt đầu
+                          Nhấn nút &quot;Phân loại trái cây&quot; để bắt đầu
                           phân tích
                         </p>
                       </motion.div>
