@@ -2,10 +2,6 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import Webcam from "react-webcam";
 import { Button } from "./ui/button";
 
-const videoConstraints = {
-  facingMode: "user",
-};
-
 export const WebcamUpload = ({
   setPreview,
   setIsLoading,
@@ -24,7 +20,12 @@ export const WebcamUpload = ({
 }) => {
   const webcamRef = useRef<Webcam>(null);
   const [isCameraOn, setIsCameraOn] = useState<boolean>(true);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const isPredictingRef = useRef<boolean>(false);
+
+  const videoConstraints = {
+    facingMode: facingMode === "user" ? "user" : { exact: "environment" },
+  };
 
   const getBaseLabel = (label: string) => label.replace(/\s\d+$/, "").trim();
 
@@ -52,7 +53,6 @@ export const WebcamUpload = ({
       });
 
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.error || "Unknown error");
 
       const top1 = Object.entries(data.prediction)
@@ -62,8 +62,8 @@ export const WebcamUpload = ({
       const prediction = getBaseLabel(top1[0] as string);
 
       setResult({
-        prediction,
-        vietnamese: translations[prediction] || "Không rõ",
+        prediction: `${prediction}: ${top1[1]}%`,
+        vietnamese: `${translations[prediction]}: ${top1[1]}%` || "Không rõ",
       });
     } catch (err) {
       console.error("Prediction error:", err);
@@ -94,15 +94,30 @@ export const WebcamUpload = ({
     });
   };
 
+  const switchFacingMode = () => {
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+  };
+
   return (
     <div className="flex flex-col items-center gap-4">
-      <Button
-        type="button"
-        onClick={toggleCamera}
-        className="bg-blue-600 text-white"
-      >
-        {isCameraOn ? "Tắt camera" : "Bật camera"}
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          onClick={toggleCamera}
+          className="bg-blue-600 text-white"
+        >
+          {isCameraOn ? "Tắt camera" : "Bật camera"}
+        </Button>
+
+        <Button
+          type="button"
+          onClick={switchFacingMode}
+          className="bg-gray-600 text-white"
+          disabled={!isCameraOn}
+        >
+          Chuyển camera {facingMode === "user" ? "sau" : "trước"}
+        </Button>
+      </div>
 
       {isCameraOn && (
         <Webcam

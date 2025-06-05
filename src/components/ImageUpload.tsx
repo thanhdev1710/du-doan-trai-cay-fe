@@ -91,20 +91,19 @@ export default function ImageUpload({
       });
 
       const data = await response.json();
+      console.log(data);
 
       if (response.ok) {
         const top1 = Object.entries(data.prediction)
           .map(([label, percent]) => [label, parseFloat(percent as string)]) // convert "14.6%" → 14.6
           .sort((a, b) => Number(b[1]) - Number(a[1]))[0];
-        console.log(data.prediction);
-        console.log(top1);
 
         const textResult = top1[0] as string;
 
         const prediction = getBaseLabel(textResult);
         setResult({
-          prediction,
-          vietnamese: translations[prediction] || "Không rõ",
+          prediction: `${prediction}: ${top1[1]}%`,
+          vietnamese: `${translations[prediction]}: ${top1[1]}%` || "Không rõ",
         });
       } else {
         console.error("Error:", data.error);
