@@ -41,6 +41,7 @@ export default function FruitRecognitionSystem() {
     grape: "Nho",
     mango: "Xoài",
     strawberry: "Dâu tây",
+    unknown: "Không xác định",
   };
 
   return (
